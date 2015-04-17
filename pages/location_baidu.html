@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="initial-scale=1.0, user-scalable=no" />
+    <style type="text/css">
+        body, html {width: 100%;height: 100%;margin:0;font-family:"微软雅黑";}
+        #allmap {width:100%; height:500px;}
+        #info {width: 100%;}
+    </style>
+    <script type="text/javascript" src="http://api.map.baidu.com/api?v=2.0&ak=PoFfA2VBMrjsRKDOeCzv9c4i"></script>
+    <script type="text/javascript" src="http://developer.baidu.com/map/jsdemo/demo/convertor.js"></script>
+    <script type="text/javascript" src="/static/location/overlay.js"></script>
+    <title>地图展示 {{title}}</title>
+</head>
+<body>
+    <div id="allmap">
+    </div>
+    <div id="info">
+        <h3>Information:</h3>
+        <p>
+            <label>Search <input type="text" id="NodeID" name="Name" /></label>
+        </p>
+    </div>
+</body>
+</html>
+<script type="text/javascript">
+    var NodeInfo = null;
+    var xhr = new XMLHttpRequest();
+    var nodes = {};
+    xhr.onreadystatechange = function() {
+        if (xhr.readyState == 4) {
+            NodeInfo = JSON.parse(xhr.responseText);
+            var map = new BMap.Map("allmap");    // 创建Map实例
+            map.centerAndZoom(new BMap.Point(parseFloat(NodeInfo["1001"][4]), parseFloat(NodeInfo["1001"][5])), 21);  // 初始化地图,设置中心点坐标和地图级别
+            map.addControl(new BMap.MapTypeControl());   //添加地图类型控件
+            map.setCurrentCity("无锡");          // 设置地图显示的城市 此项是必须设置的
+            map.enableScrollWheelZoom(true);     //开启鼠标滚轮缩放
+            for(var nodeId in NodeInfo) {
+//                console.log(nodeId, NodeInfo[nodeId]);
+                var customMK = new NodeOverlay(new BMap.Point(parseFloat(NodeInfo[nodeId][4]), parseFloat(NodeInfo[nodeId][5])), nodeId);
+//                var planeMK = new BMap.Marker();
+                map.addOverlay(customMK);
+                nodes[nodeId] = {"info":NodeInfo, "marker":customMK};
+            }
+        }
+    };
+    xhr.open('GET', '/Data/NodeInfo', true);
+    xhr.send(null);
+    document.getElementById("NodeID").addEventListener("keyup", function(){
+        var searchNodeIdText = document.getElementById("NodeID").value;
+        var NodeIdSearch = parseInt(searchNodeIdText);
+        if(!isNaN(NodeIdSearch)) {
+            console.warn(searchNodeIdText);
+            for(var key in nodes) {
+                var obj = nodes[key]["marker"];
+                if(key.indexOf(searchNodeIdText) == 0) {
+                    obj._div.style.backgroundColor = "#6BADCA";
+                    obj._div.style.borderColor = "#0000ff";
+                    obj._div.style.height = "24px";
+                    obj._div.style.fontSize = "18px";
+                    obj._div.style.zIndex = 100;
+                } else {
+                    obj.recover();
+                }
+            }
+        }
+        if(searchNodeIdText.length == 0) {
+            for(var key in nodes) {
+                var obj = nodes[key]["marker"];
+                obj.recover();
+            }
+        }
+    });
+</script>

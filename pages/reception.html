@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <title></title>
+    <style>
+
+        .bar {
+            fill: steelblue;
+        }
+
+        .bar:hover {
+            fill: brown;
+        }
+
+        .axis {
+            font: 10px sans-serif;
+        }
+
+        .axis path,
+        .axis line {
+            fill: none;
+            stroke: #000;
+            shape-rendering: crispEdges;
+        }
+
+        .x.axis path {
+            display: none;
+        }
+    </style>
+    <script type="text/javascript" charset="utf-8" src="/static/d3.js"></script>
+</head>
+<body>
+    <h3>RECEPTION</h3>
+</body>
+<script type="text/javascript">
+    var margin = {top: 20, right: 20, bottom: 30, left: 40},
+            width = 960 - margin.left - margin.right,
+            height = 500 - margin.top - margin.bottom;
+
+    var x = d3.scale.ordinal()
+            .rangeRoundBands([0, width], .1);
+
+    var y = d3.scale.linear()
+            .range([height, 0]);
+
+    var xAxis = d3.svg.axis()
+            .scale(x)
+            .orient("bottom");
+
+    var yAxis = d3.svg.axis()
+            .scale(y)
+            .orient("left")
+
+    var svg = d3.select("body").append("svg")
+            .attr("width", width + margin.left + margin.right)
+            .attr("height", height + margin.top + margin.bottom)
+            .append("g")
+            .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+    var xhr = new XMLHttpRequest();
+    xhr.onreadystatechange = function() {
+        if (xhr.readyState == 4) {
+            reception = JSON.parse(xhr.responseText);
+            console.log(reception)
+        }
+    };
+    xhr.open('GET', '/Rep/?date=03&hour=02&min=00', true);
+    xhr.send(null);
+    xhr.onreadystatechange = function() {
+        if (xhr.readyState == 4) {
+            repMeta = JSON.parse(xhr.responseText);
+            console.log(repMeta);
+            var data = repMeta[3];
+            var d = [];
+            var dataKeys = Object.keys(data).sort();
+            for(var k in dataKeys) {
+                var element = {};
+                element.key = k;
+                var sum = 0;
+                for(var v in data[k]) {
+                    sum += data[k][v];
+                }
+                element.value = sum;
+                d.push(element);
+            }
+            x.domain(d.map(function(element){return element.key}));
+            y.domain([d3.min(d, function(x){return x.value})-300, d3.max(d, function(x){return x.value})]);
+
+            svg.append("g")
+                    .attr("class", "x axis")
+                    .attr("transform", "translate(0," + height + ")")
+                    .call(xAxis);
+
+            svg.append("g")
+                    .attr("class", "y axis")
+                    .call(yAxis)
+                    .append("text")
+                    .attr("transform", "rotate(-90)")
+                    .attr("y", 6)
+                    .attr("dy", ".71em")
+                    .style("text-anchor", "end");
+
+            svg.selectAll(".bar")
+                    .data(d)
+                    .enter().append("rect")
+                    .attr("class", "bar")
+                    .attr("x", function(d) { return x(d.key); })
+                    .attr("width", x.rangeBand())
+                    .attr("y", function(d) { return y(d.value); })
+                    .attr("height", function(d) { return height - y(d.value); });
+
+        }
+    };
+    xhr.open('GET', '/Rep/meta', true);
+    xhr.send(null);
+</script>
+</html>

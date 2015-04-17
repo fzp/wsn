@@ -1,0 +1,56 @@
+C1 packet: 
+
+It includes two kinds of information: 1) sensing readings, such as humidity, temperature and light. 2) path information : It records the node IDs along a routing path toward the sink. If one packet's path length exceeds 10, it only records the first 10 node IDs starting from the source node(exclude the source node ID).
+
+Fields:
+
+0  PacketReceivedTimestamp(sink view): 	the timestamp when the packet is received at the sink
+
+1  PacketType: packet type (C1 or C2 or C3)
+
+2  SourceID: the source node ID which gerenates the packet
+
+3  SinkID: the destination node ID which collects the data
+
+4  Parent: the parent node ID
+
+5  Humidity: 	 raw data (Conversion formula refers to [1])
+
+6  Temperature:  raw data (Conversion formula refers to [1])
+
+7  Light:        raw data (Conversion formula refers to [1])
+
+8  PathLength:   the length of routing path 
+
+9 .. 18 PathNodes[10]: the node IDs along the routing path. It records the first 10 node IDs from the source node at most(exclude the source node ID) 
+
+###############################################################################
+
+C2: packet:
+
+It contains the routing table with a preconfigured maximum size of 10. Each routing entry includes the neighbor node ID, the RSSI value from the neighbor, the link-ETX, and the path-ETX.
+
+Fields:
+
+0  PacketReceivedTimestamp(sink view): the timestamp when the packet is received at the sink
+
+1  PacketType: packet type (C1 or C2 or C3)
+
+2  SourceID: the source node ID which gerenates the packet
+
+3  SinkID:   the destination node ID which collects the data
+
+4  Parent: the parent node ID
+
+5  NeighborTableSize: routing table size
+
+   NeighborEntry NeighborInformationTable[10]: routing table
+
+   struct NeighborEntry 
+   {
+	ID: the neighbor node ID                   6,9 .. ,33
+	RSSI: the RSSI value from the neighbor     7,10 ..,34
+	PathETX: the path ETX                      8,11 ..,35
+   }	
+
+[1] GreenOrbs data conversion formula list
