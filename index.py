@@ -39,7 +39,7 @@ class ReceptionMetaHandler(tornado.web.RequestHandler):
 
 settings = \
     {
-        "static_path": os.path.join(os.path.dirname(__file__), "static")
+        "static_path": os.path.join(os.path.dirname(__file__), "pages/static")
     }
 application = tornado.web.Application([
     (r"/", MainHandler),
@@ -52,5 +52,5 @@ application = tornado.web.Application([
 ])
 
 if __name__ == "__main__":
-    application.listen(8888)
+    application.listen(7777)
     tornado.ioloop.IOLoop.instance().start()
