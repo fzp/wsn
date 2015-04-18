@@ -1,1 +1,7 @@
-.idea
+.idea/*
+
+pages/.idea
+
+WSNData/*.pyc
+
+*.xml
