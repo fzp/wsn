@@ -3,7 +3,7 @@ __author__ = 'jin-yc10'
 import csv, os
 
 NodeInfo = {}
-NodeInfoCsvFile = open("./WSNData/1000-2000-baidu.txt","r")
+NodeInfoCsvFile = open(os.path.join(os.path.dirname(__file__), "1000-2000-baidu.txt"),"r")
 NodeInfoCsvObj = csv.reader(NodeInfoCsvFile)
 for nodeInfo in NodeInfoCsvObj:
     NodeInfo[nodeInfo[0]] = nodeInfo
