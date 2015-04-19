@@ -17,7 +17,7 @@ class formatData:
         return (int(date[0]),int(date[1]),int(date[2]),int(date[3]),int(date[4]),int(date[5]),int(date[6]))
 
     #get date row by row,save in list
-    def getRawData(self,fileName,deli):
+    def getRawData(self,fileName,deli = ","):
         file = open(os.path.join(os.path.dirname(__file__), fileName),"r")
         cr = csv.reader(file, delimiter = deli)
         rawDate = []
@@ -27,7 +27,7 @@ class formatData:
         return rawDate
 
     #get format data
-    def getFormatData(self,format,fileName,deli):
+    def getFormatData(self,format,fileName,deli = ","):
         rawData = self.getRawData(fileName,deli)
         structuredDate = []
         for rawEntry in rawData:
@@ -43,7 +43,11 @@ class formatData:
                     entry[keySize] = int(rawEntry[index])
                     index+=1
                     entry[key] = []
-                    for j in range(entry[keySize]):
+                    if entry[keySize] > 10:
+                        jRange = 10
+                    else:
+                        jRange = entry[keySize]
+                    for j in range(jRange):
                         subEntry = {}
                         for subKey,subType in value:
                             subEntry[subKey]=self.changeType[subType](rawEntry[index])
