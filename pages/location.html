@@ -58,192 +58,325 @@
         .invisible {
             visibility: hidden;
         }
+        .brush .extent {
+            stroke: #fff;
+            fill: rgba(255,127,0, 1);
+            fill-opacity: .3;
+            shape-rendering: crispEdges;
+        }
+
+        .line {
+            stroke-width: 2px;
+            fill: none;
+            opacity: 0.1;
+        }
+
     </style>
 </head>
 <body>
-    <svg id="map" ></svg>
-    <svg id="timeLine" ></svg>
+<svg id="map" ></svg>
+<p>
+    <label>Start:<input id="startTime" type="text" value="2011-08-03 00-00-01"/></label>
+    <label>End:<input id="endTime" type="text" value="2011-08-03 01-00-01"/></label>
+    <input id="showTopology" type="button" value="SHOW" />
+    <input id="clearTopology" type="button" value="CLEAR" />
+    <input id="durationShow" type="button" value="DURATION" />
+</p>
+<svg id="timeLine" ></svg>
 </body>
 <script>
+var g_nodeInfoList;
+var mapSvg;
+var g_map = {};
+var line = d3.svg.line()
+        .x(function (d) {
+            return g_map.x(d.x);
+        })
+        .y(function (d) {
+            return g_map.y(d.y);
+        })
+        .interpolate("linear");
+
+function getRandomColor() {
+    var letters = '0123456789ABCDEF'.split('');
+    var color = '#';
+    for (var i = 0; i < 6; i++ ) {
+        color += letters[Math.floor(Math.random() * 16)];
+    }
+    return color;
+}
+
+getData("/Data/NodeInfo", function(AjaxData){
+    var jsonObj = JSON.parse(AjaxData);
     var data = [];
-    var mapSvg;
-    getData("/Data/NodeInfo", function(AjaxData){
-        var jsonObj = JSON.parse(AjaxData);
-        var data = [];
-        for(var nodeId in jsonObj) {
-            var nodeInfo = jsonObj[nodeId];
-            var d = {"latitude":nodeInfo[2],
-                "longitude":nodeInfo[3]
-            };
-            data.push(d);
-        }
-        console.log(data);
-        var margin = {top: 30, right: 10, bottom: 20, left: 60},
-                width = window.innerWidth - margin.left - margin.right,
-                height = window.innerHeight - margin.top - margin.bottom - 100;
-
-        var xMax = d3.max(data, function(d) { return +d.latitude; }),
-                xMin = d3.min(data, function(d) { return +d.latitude; }),
-                yMax = d3.max(data, function(d) { return +d.longitude; }),
-                yMin = d3.min(data, function(d) { return +d.longitude; });
-
-        //Define scales
-        var x = d3.scale.linear()
-                .domain([xMin, xMax])
-                .range([0, width]);
-
-        var y = d3.scale.linear()
-                .domain([yMin, yMax])
-                .range([height, 0]);
-
-        var colourScale = function(val){
-            var colours = ['#9d3d38','#c5653a','#f9b743','#9bd6d7'];
-            if (val > 30) {
-                return colours[0];
-            } else if (val > 10) {
-                return colours[1];
-            } else if (val > 0) {
-                return colours[2];
-            } else {
-                return colours[3];
-            }
+    g_nodeInfoList = jsonObj;
+    g_nodeInfoList[1182] = g_nodeInfoList[60001];
+    for(var nodeId in jsonObj) {
+        var nodeInfo = jsonObj[nodeId];
+        var d = {
+            "nodeId":nodeInfo[0],
+            "latitude":nodeInfo[2],
+            "longitude":nodeInfo[3]
         };
+        data.push(d);
+    }
+    console.log(data);
+    var margin = {top: 30, right: 10, bottom: 20, left: 60},
+            width = window.innerWidth - margin.left - margin.right,
+            height = window.innerHeight - margin.top - margin.bottom - 100;
+    g_map.margin = margin;
+    var xMax = d3.max(data, function(d) { return +d.latitude; }),
+            xMin = d3.min(data, function(d) { return +d.latitude; }),
+            yMax = d3.max(data, function(d) { return +d.longitude; }),
+            yMin = d3.min(data, function(d) { return +d.longitude; });
 
+    //Define scales
+    var x = d3.scale.linear()
+            .domain([xMin, xMax])
+            .range([0, width]);
+    g_map.x = x;
+    var y = d3.scale.linear()
+            .domain([yMin, yMax])
+            .range([height, 0]);
+    g_map.y = y;
+    var colourScale = function(val){
+        var colours = ['#9d3d38','#c5653a','#f9b743','#9bd6d7'];
+        if (val > 30) {
+            return colours[0];
+        } else if (val > 10) {
+            return colours[1];
+        } else if (val > 0) {
+            return colours[2];
+        } else {
+            return colours[3];
+        }
+    };
 
-        //Define X axis
-        var xAxis = d3.svg.axis()
-                .scale(x)
-                .orient("bottom")
-                .tickSize(-height)
-                .tickFormat(d3.format("s"));
+    //Define X axis
+    var xAxis = d3.svg.axis()
+            .scale(x)
+            .orient("bottom")
+            .tickSize(-height)
+            .tickFormat(d3.format("s"));
+    g_map.xAxis = xAxis;
 
-        //Define Y axis
-        var yAxis = d3.svg.axis()
-                .scale(y)
-                .orient("left")
-                .ticks(5)
-                .tickSize(-width)
-                .tickFormat(d3.format("s"));
+    //Define Y axis
+    var yAxis = d3.svg.axis()
+            .scale(y)
+            .orient("left")
+            .ticks(5)
+            .tickSize(-width)
+            .tickFormat(d3.format("s"));
+    g_map.yAxis = yAxis;
 
-        var svg = d3.select("#map")
-                .attr("width", width + margin.left + margin.right)
-                .attr("height", height + margin.top + margin.bottom)
-                .append("g")
-                .attr("transform", "translate(" + margin.left + "," + margin.top + ")")
-                .call(d3.behavior.zoom().x(x).y(y).scaleExtent([1, 8]).on("zoom", zoom))
-                .call(d3.behavior.drag().on("drag", function(){
+    var svg = d3.select("#map")
+            .attr("width", width + margin.left + margin.right)
+            .attr("height", height + margin.top + margin.bottom)
+            .append("g")
+            .attr("id", "movable")
+            .attr("transform", "translate(" + margin.left + "," + margin.top + ")")
+            .call(d3.behavior.zoom().x(x).y(y).scaleExtent([1, 8]).on("zoom", zoom))
+            .call(d3.behavior.drag().on("drag", function(){
 //                    console.log(xAxis.scale().domain());
-                    svg.selectAll("polygon")
-                            .attr("opacity", function(d){
-                                if( d.latitude < xAxis.scale().domain()[0] || d.longitude < yAxis.scale().domain()[0] ||
-                                        d.latitude > xAxis.scale().domain()[1] || d.longitude > yAxis.scale().domain()[1]) {
-                                    return "0.1";
-                                } else {
-                                    return "1.0"
-                                }
-                            });
-                }));
-        mapSvg = svg;
+                svg.selectAll("polygon")
+                        .attr("opacity", function(d){
+                            if( d.latitude < xAxis.scale().domain()[0] || d.longitude < yAxis.scale().domain()[0] ||
+                                    d.latitude > xAxis.scale().domain()[1] || d.longitude > yAxis.scale().domain()[1]) {
+                                return "0.1";
+                            } else {
+                                return "1.0"
+                            }
+                        });
+            }));
+    mapSvg = svg;
+    g_map.svg = svg;
 
-        svg.append("rect")
-                .attr("width", width)
-                .attr("height", height);
+    svg.append("rect")
+            .attr("width", width)
+            .attr("height", height);
 
-        svg.append("g")
-                .attr("class", "x axis")
-                .attr("transform", "translate(0," + height + ")")
-                .call(xAxis);
+    svg.append("g")
+            .attr("class", "x axis")
+            .attr("transform", "translate(0," + height + ")")
+            .call(xAxis);
 
-        svg.append("g")
-                .attr("class", "y axis")
-                .call(yAxis);
+    svg.append("g")
+            .attr("class", "y axis")
+            .call(yAxis);
 
-        var poly = svg.selectAll("polygon")
-                .data(data)
-                .enter()
-                .append("polygon")
-                .attr("class","hex")
+    var poly = svg.selectAll("polygon")
+            .data(data)
+            .enter()
+            .append("polygon")
+            .on("click", function(d){console.log(d)})
+            .attr("class","hex")
+            .attr("transform", function(d, i) {
+                return "translate("+x(d.latitude)+","+y(d.longitude)+")";
+            })
+            .attr('points','4.569,2.637 0,5.276 -4.569,2.637 -4.569,-2.637 0,-5.276 4.569,-2.637')
+            .attr("fill",function(d) {
+                return colourScale(30);
+            });
+
+    function zoom() {
+        svg.selectAll("polygon")
                 .attr("transform", function(d, i) {
                     return "translate("+x(d.latitude)+","+y(d.longitude)+")";
                 })
-                .attr('points','4.569,2.637 0,5.276 -4.569,2.637 -4.569,-2.637 0,-5.276 4.569,-2.637')
-                .attr("fill",function(d) {
-                    return colourScale(30);
-                });
-
-        function zoom() {
-            svg.selectAll("polygon")
-                    .attr("transform", function(d, i) {
-                        return "translate("+x(d.latitude)+","+y(d.longitude)+")";
-                    })
-                    .attr('points','4.569,2.637 0,5.276 -4.569,2.637 -4.569,-2.637 0,-5.276 4.569,-2.637');
-            svg.select(".x.axis").call(xAxis);
-            svg.select(".y.axis").call(yAxis);
-        }
-    });
-    getData("/Rep/meta", function(AjaxData){
-        var repMeta = JSON.parse(AjaxData);
-        var data = [];
-        var margin = {top: 30, right: 10, bottom: 20, left: 60},
-                width = window.innerWidth - margin.left - margin.right,
-                height = 100;
-        console.log(repMeta);
-        for(var day in repMeta){
-            for(var hour in repMeta[day]){
-                for(var minute in repMeta[day][hour]){
-                    var d = {};
-                    d.time = new Date(2011, 8, day, hour, minute);
-                    d.value = repMeta[day][hour][minute];
-                    data.push(d);
-                }
+                .attr('points','4.569,2.637 0,5.276 -4.569,2.637 -4.569,-2.637 0,-5.276 4.569,-2.637');
+        svg.selectAll(".line")
+                .attr("d", function(d){return line(d.link)});
+        svg.select(".x.axis").call(xAxis);
+        svg.select(".y.axis").call(yAxis);
+    }
+});
+getData("/Rep/meta", function(AjaxData){
+    var repMeta = JSON.parse(AjaxData);
+    var data = [];
+    var margin = {top: 30, right: 10, bottom: 20, left: 60},
+            width = window.innerWidth - margin.left - margin.right,
+            height = 100;
+    console.log(repMeta);
+    for(var day in repMeta){
+        for(var hour in repMeta[day]){
+            for(var minute in repMeta[day][hour]){
+                var d = {};
+                d.time = new Date(2011, 8, day, hour, minute);
+                d.value = repMeta[day][hour][minute];
+                data.push(d);
             }
         }
-        var x = d3.time.scale().range([0, width]),   //建立数据容器  把数值转为时间标度再转为宽度
-                y = d3.scale.linear().range([height, 0]);//直线标度 Learning D3.js(1)学习制作一个柱形图/直方图
+    }
+    var x = d3.time.scale().range([0, width]),   //建立数据容器  把数值转为时间标度再转为宽度
+            y = d3.scale.linear().range([height, 0]);//直线标度 Learning D3.js(1)学习制作一个柱形图/直方图
 
-        var xAxis = d3.svg.axis().scale(x).orient("bottom"),//制作上图的X轴
-                yAxis = d3.svg.axis().scale(y).orient("left");//制作上图的Y轴
+    var xAxis = d3.svg.axis().scale(x).orient("bottom"),//制作上图的X轴
+            yAxis = d3.svg.axis().scale(y).orient("left");//制作上图的Y轴
 
 
-        var area = d3.svg.area()//生成上图area 注意这个area是一个path，要利用attr(d)加载进去
-                .x(function(d) { return x(d.time); })
-                .y0(height) //https://github.com/mbostock/d3/wiki/SVG-Shapes#wiki-area
-                .y1(function(d) { return y(d.value); });
+    var area = d3.svg.area()//生成上图area 注意这个area是一个path，要利用attr(d)加载进去
+            .x(function(d) { return x(d.time); })
+            .y0(height) //https://github.com/mbostock/d3/wiki/SVG-Shapes#wiki-area
+            .y1(function(d) { return y(d.value); });
 
-        var svg = d3.select("#timeLine")
-                .attr("width", width + margin.left + margin.right)
-                .attr("height", height + margin.top + margin.bottom);
+    var svg = d3.select("#timeLine")
+            .attr("width", width + margin.left + margin.right)
+            .attr("height", height + margin.top + margin.bottom);
 
-        var focus = svg.append("g")//制作上图容器
-                .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+    var focus = svg.append("g")//制作上图容器
+            .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
-        x.domain(d3.extent(data.map(function(d) { return d.time; })));//利用domain方法给数据容器匹配上数据
-        y.domain([0, d3.max(data.map(function(d) { return d.value; }))]);
+    x.domain(d3.extent(data.map(function(d) { return d.time; })));//利用domain方法给数据容器匹配上数据
+    y.domain([0, d3.max(data.map(function(d) { return d.value; }))]);
 
-        focus.append("path")
-                .datum(data)
-                .attr("d", area);
-        //添加上面图的XY坐标轴
-        focus.append("g")
-                .attr("class", "x axis")
-                .attr("transform", "translate(0," + height + ")")
-                .call(xAxis)
-                .call(d3.behavior.zoom().on("zoom", zoom));
+    focus.append("path")
+            .datum(data)
+            .attr("d", area);
+    //添加上面图的XY坐标轴
+    focus.append("g")
+            .attr("class", "x axis")
+            .attr("transform", "translate(0," + height + ")")
+            .call(xAxis);
 
-        focus.append("g")
-                .attr("class", "y axis")
-                .call(yAxis);
+    focus.append("g")
+            .attr("class", "y axis")
+            .call(yAxis);
 
-        focus.append("svg:rect")
-                .attr("class", "pane")
-                .attr("width", width)
-                .attr("height", height);
+    var brush = d3.svg.brush()
+            .x(x)
+            .on("brush", brushed);
 
-        function zoom() {
-            console.log(d3.event.transform);
-            svg.select("#timeLine.x.axis").call(xAxis);
-            svg.select("#timeLine.y.axis").call(yAxis);
+    focus.append("g")
+            .attr("class", "x brush")
+            .call(brush)
+            .selectAll("rect")
+            .attr("y", -6)
+            .attr("height", height + 7)
+            .call(d3.behavior.zoom().x(x).scaleExtent([1, 50]).on("zoom", zoom));
+
+    function brushed() {
+        focus.select("path").attr("d", area);
+        focus.select(".x.axis").call(xAxis);
+        console.log(xAxis.scale);
+    }
+
+    function zoom() {
+        svg.select(".x.axis").call(xAxis);
+        svg.select(".y.axis").call(yAxis);
+        console.log(xAxis.scale().domain());
+    }
+    var showTopology = document.getElementById("showTopology");
+    var clearTopology = document.getElementById("clearTopology");
+    var durationShow = document.getElementById("durationShow");
+    var startInput = document.getElementById("startTime");
+    var endInput = document.getElementById("endTime");
+    var format = d3.time.format("%Y-%m-%d %H-%M-%S");
+    if(showTopology) {
+        function drawLinks(response) {
+            var links = [];
+            var c1PackageList = JSON.parse(response);
+            for (var ic1 in c1PackageList) {
+                var c1 = c1PackageList[ic1];
+                //"2011:08:03:00:00:05:687:", "C1", "1273", "60001", "1277", "2947", "6625", "3", "6", "1277", "1269", "1272", "1348", "1375", "1182", "0", "0", "0", "0"
+                var senderId = c1[2] , sinkId = c1[3], humidity = c1[5], temperature = c1[6], light = c1[7];
+                var parentId = c1[4];
+                var pathLength = parseInt(c1[8]);
+                var pathNodes = c1.slice(9, 9 + pathLength);
+                var pathNLoc = [];
+                var link = [];
+                if (g_nodeInfoList) {
+                    for (var nId in pathNodes) {
+                        var pathNode = g_nodeInfoList[parseInt(pathNodes[nId])];
+                        if (pathNode == undefined) {
+                            // skip non exist node
+//                                    console.warn("undefined nId" + pathNodes[nId].toString());
+//                                    console.warn(pathNodes);
+                        } else {
+                            pathNLoc.push(pathNode);
+                            link.push({x: pathNode[2], y: pathNode[3], id: pathNodes[nId]});
+                        }
+                    }
+                    console.log(pathNodes);
+                }
+                links.push({
+                    c: getRandomColor(),
+                    link:link
+                });
+            }
+            groupElement.innerHTML = "";
+            var lines = group.selectAll(".line")
+                    .data(links);
+            lines.enter().append("path")
+                    .attr("class", "line")
+                    .attr("routeId", function(d,i){
+                        return i.toString();
+                    })
+                    .attr("stroke", function(d){return d.c;})
+                    .attr("d", function(d){return line(d.link)});
+            lines.exit().remove();
         }
-    });
+        var group = g_map.svg.append('g').attr('class', 'routes').attr("id", "routes");
+//                .attr("transform", "translate(" + g_map.margin.left + "," + g_map.margin.top + ")");
+        var groupElement = document.getElementById("routes");
+        durationShow.onclick = function() {
+            getData("/Rep/duration/?s="+startInput.value+"&e="+endInput.value, function (response) {
+                drawLinks(response);
+            });
+        };
+        clearTopology.onclick = function() {
+            groupElement.innerHTML = "";
+        };
+        showTopology.onclick = function () {
+            var startTime = format.parse(startInput.value);
+            var endTime = format.parse(endInput.value);
+            // 2011-08-03 00-00-01
+            getData("/Rep/?date=" + startTime.getDay().toString() +
+                    "&hour=" + startTime.getHours().toString() +
+                    "&min=" + startTime.getMinutes().toString(), function (response) {
+                drawLinks(response);
+            });
+        }
+    }
+});
 </script>
 </html>

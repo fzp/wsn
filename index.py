@@ -5,6 +5,7 @@ import json
 
 from WSNData import nodeInfo
 from WSNData.receptionRatio import receptionDict, receptionMeta
+import time
 
 class MainHandler(tornado.web.RequestHandler):
     def get(self):
@@ -37,6 +38,21 @@ class ReceptionMetaHandler(tornado.web.RequestHandler):
         print "ReceptionMetaHandler"
         self.write(json.dumps(receptionMeta))
 
+from dateutil import rrule
+from datetime import datetime, timedelta
+
+class ReceptionDurationHandler(tornado.web.RequestHandler):
+    def get(self, args):
+        s = self.get_argument("s")
+        e = self.get_argument("e")
+        st = datetime.strptime(s, '%Y-%m-%d %H-%M-%S')
+        et = datetime.strptime(e, '%Y-%m-%d %H-%M-%S')
+        print "ReceptionDurationHandler", st, et
+        responseArray = []
+        for dt in rrule.rrule(rrule.MINUTELY, dtstart=st, until=et):
+            responseArray += receptionDict[dt.day][dt.hour][dt.minute]
+        self.write(json.dumps(responseArray))
+
 settings = \
     {
         "static_path": os.path.join(os.path.dirname(__file__), "pages/static")
@@ -48,6 +64,7 @@ application = tornado.web.Application([
     (r"/static/(.*)", tornado.web.StaticFileHandler, dict(path=settings['static_path'])),
     (r"/Data/NodeInfo", NodeInfoHandler),
     (r"/Rep/meta", ReceptionMetaHandler),
+    (r"/Rep/duration/(.*)", ReceptionDurationHandler),
     (r"/Rep/(.*)", ReceptionRatioHandler),
 ])
 
