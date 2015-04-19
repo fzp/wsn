@@ -50,7 +50,10 @@ class ReceptionDurationHandler(tornado.web.RequestHandler):
         print "ReceptionDurationHandler", st, et
         responseArray = []
         for dt in rrule.rrule(rrule.MINUTELY, dtstart=st, until=et):
-            responseArray += receptionDict[dt.day][dt.hour][dt.minute]
+            try:
+                responseArray += receptionDict[dt.day][dt.hour][dt.minute]
+            except KeyError:
+                print "no data at", dt.day, dt.hour, dt.minute
         self.write(json.dumps(responseArray))
 
 settings = \
