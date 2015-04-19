@@ -11,12 +11,12 @@ class formatData:
         'string':lambda x:x,
     }
 
-    #日期格式化
+    #date format
     def getDate(self,dateStr):
         date = dateStr.split(':')
         return (int(date[0]),int(date[1]),int(date[2]),int(date[3]),int(date[4]),int(date[5]),int(date[6]))
 
-    #按行获取数组，每行用列表方式组织数据
+    #get date row by row,save in list
     def getRawData(self,fileName,deli):
         file = open(os.path.join(os.path.dirname(__file__), fileName),"r")
         cr = csv.reader(file, delimiter = deli)
@@ -26,8 +26,7 @@ class formatData:
         file.close()
         return rawDate
 
-    #用于获取格式化数据
-    #此方法可以递归实现，适用范围更广
+    #get format data
     def getFormatData(self,format,fileName,deli):
         rawData = self.getRawData(fileName,deli)
         structuredDate = []
