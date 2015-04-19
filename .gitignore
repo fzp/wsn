@@ -5,4 +5,7 @@ pages/.idea
 WSNData/*.pyc
 
 *.xml
+
 wsn.iml
+
+*.pyc

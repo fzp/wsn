@@ -4,37 +4,19 @@
     <meta charset="UTF-8">
     <title></title>
     <script type="text/javascript" charset="utf-8" src="/static/d3.js"></script>
+    <script type="text/javascript" charset="utf-8" src="/static/location/data.js"></script>
     <style>
-        html,
-        button,
-        input,
-        select,
-        textarea {
-            color: #222;
-        }
-
         body {
             font-size: 1em;
             line-height: 1.4;
         }
-
-        /*
-         * Allow only vertical resizing of textareas.
-         */
-
-        textarea {
-            resize: vertical;
-        }
-
-        /* ==========================================================================
-           Author's custom styles
-           ========================================================================== */
         body {
             background:#fefdf5;
+            height: 100%;
+            width: 100%;
             font-family:'Trade Gothic Next W01',sans-serif;
             color:#333;
         }
-
         #chart {
             position:relative;
         }
@@ -49,13 +31,11 @@
         }
         .hex {
         }
-        .active {
-            z-index:5;
-            position:relative;
+        .active polygon{
+            opacity: 1.0;
         }
         .inactive polygon {
-            fill:#aaa;
-            opacity:0.1;
+            opacity: 0.1;
         }
         .axis {
         }
@@ -75,169 +55,195 @@
             fill:rgba(0,0,0,0.5);
             shape-rendering:auto;
         }
-
-        .ir:before {
-            content: "";
-            display: block;
-            width: 0;
-            height: 150%;
-        }
-
-        /*
-         * Hide from both screenreaders and browsers: h5bp.com/u
-         */
-
-        .hidden {
-            display: none !important;
-            visibility: hidden;
-        }
-
-        /*
-         * Hide only visually, but have it available for screenreaders: h5bp.com/v
-         */
-
-        .visuallyhidden {
-            border: 0;
-            clip: rect(0 0 0 0);
-            height: 1px;
-            margin: -1px;
-            overflow: hidden;
-            padding: 0;
-            position: absolute;
-            width: 1px;
-        }
-
-        /*
-         * Extends the .visuallyhidden class to allow the element to be focusable
-         * when navigated to via the keyboard: h5bp.com/p
-         */
-
-        .visuallyhidden.focusable:active,
-        .visuallyhidden.focusable:focus {
-            clip: auto;
-            height: auto;
-            margin: 0;
-            overflow: visible;
-            position: static;
-            width: auto;
-        }
-
-        /*
-         * Hide visually and from screenreaders, but maintain layout
-         */
-
         .invisible {
             visibility: hidden;
         }
     </style>
 </head>
 <body>
-<svg/>
+    <svg id="map" ></svg>
+    <svg id="timeLine" ></svg>
 </body>
 <script>
-    var data =
-            [
-                {"OccupationTitle":"Postal Service Mail Sorters, Processors, and Processing Machine Operators","Category":"Office and Administrative Support Occupations","TotalEmployed2011":"139700","MedianSalary2011":"53080","ProjectedGrowth2020":"-48.5"},
-                {"OccupationTitle":"Postal Service Clerks","Category":"Office and Administrative Support Occupations","TotalEmployed2011":"65040","MedianSalary2011":"53100","ProjectedGrowth2020":"-48.2"},
-                {"OccupationTitle":"Postmasters and Mail Superintendents","Category":"Management Occupations","TotalEmployed2011":"24410","MedianSalary2011":"62920","ProjectedGrowth2020":"-27.8"},
-                {"OccupationTitle":"Petroleum Pump System Operators, Refinery Operators, and Gaugers","Category":"Production Occupations","TotalEmployed2011":"41570","MedianSalary2011":"61260","ProjectedGrowth2020":"-14"},
-                {"OccupationTitle":"Chemical Plant and System Operators","Category":"Production Occupations","TotalEmployed2011":"40580","MedianSalary2011":"55940","ProjectedGrowth2020":"-12.2"},
-                {"OccupationTitle":"Postal Service Mail Carriers","Category":"Office and Administrative Support Occupations","TotalEmployed2011":"315330","MedianSalary2011":"55160","ProjectedGrowth2020":"-12"},
-                {"OccupationTitle":"Insurance Appraisers, Auto Damage","Category":"Business and Financial Operations Occupations","TotalEmployed2011":"67550","MedianSalary2011":"51040","ProjectedGrowth2020":"45.7"},
-                {"OccupationTitle":"Biomedical Engineers","Category":"Architecture and Engineering Occupations","TotalEmployed2011":"16590","MedianSalary2011":"84670","ProjectedGrowth2020":"61.7"}
-            ];
-
-    var margin = {top: 30, right: 10, bottom: 20, left: 60},
-            width = 960 - margin.left - margin.right,
-            height = 500 - margin.top - margin.bottom;
-
-    var xMax = d3.max(data, function(d) { return +d.TotalEmployed2011; }),
-            xMin = 0,
-            yMax = d3.max(data, function(d) { return +d.MedianSalary2011; }),
-            yMin = 0;
-
-    //Define scales
-    var x = d3.scale.linear()
-            .domain([xMin, xMax])
-            .range([0, width]);
-
-    var y = d3.scale.linear()
-            .domain([yMin, yMax])
-            .range([height, 0]);
-
-    var colourScale = function(val){
-        var colours = ['#9d3d38','#c5653a','#f9b743','#9bd6d7'];
-        if (val > 30) {
-            return colours[0];
-        } else if (val > 10) {
-            return colours[1];
-        } else if (val > 0) {
-            return colours[2];
-        } else {
-            return colours[3];
+    var data = [];
+    var mapSvg;
+    getData("/Data/NodeInfo", function(AjaxData){
+        var jsonObj = JSON.parse(AjaxData);
+        var data = [];
+        for(var nodeId in jsonObj) {
+            var nodeInfo = jsonObj[nodeId];
+            var d = {"latitude":nodeInfo[2],
+                "longitude":nodeInfo[3]
+            };
+            data.push(d);
         }
-    };
+        console.log(data);
+        var margin = {top: 30, right: 10, bottom: 20, left: 60},
+                width = window.innerWidth - margin.left - margin.right,
+                height = window.innerHeight - margin.top - margin.bottom - 100;
+
+        var xMax = d3.max(data, function(d) { return +d.latitude; }),
+                xMin = d3.min(data, function(d) { return +d.latitude; }),
+                yMax = d3.max(data, function(d) { return +d.longitude; }),
+                yMin = d3.min(data, function(d) { return +d.longitude; });
+
+        //Define scales
+        var x = d3.scale.linear()
+                .domain([xMin, xMax])
+                .range([0, width]);
+
+        var y = d3.scale.linear()
+                .domain([yMin, yMax])
+                .range([height, 0]);
+
+        var colourScale = function(val){
+            var colours = ['#9d3d38','#c5653a','#f9b743','#9bd6d7'];
+            if (val > 30) {
+                return colours[0];
+            } else if (val > 10) {
+                return colours[1];
+            } else if (val > 0) {
+                return colours[2];
+            } else {
+                return colours[3];
+            }
+        };
 
 
-    //Define X axis
-    var xAxis = d3.svg.axis()
-            .scale(x)
-            .orient("bottom")
-            .tickSize(-height)
-            .tickFormat(d3.format("s"));
+        //Define X axis
+        var xAxis = d3.svg.axis()
+                .scale(x)
+                .orient("bottom")
+                .tickSize(-height)
+                .tickFormat(d3.format("s"));
 
-    //Define Y axis
-    var yAxis = d3.svg.axis()
-            .scale(y)
-            .orient("left")
-            .ticks(5)
-            .tickSize(-width)
-            .tickFormat(d3.format("s"));
+        //Define Y axis
+        var yAxis = d3.svg.axis()
+                .scale(y)
+                .orient("left")
+                .ticks(5)
+                .tickSize(-width)
+                .tickFormat(d3.format("s"));
 
-    var svg = d3.select("svg")
-            .attr("width", width + margin.left + margin.right)
-            .attr("height", height + margin.top + margin.bottom)
-            .append("g")
-            .attr("transform", "translate(" + margin.left + "," + margin.top + ")")
-            .call(d3.behavior.zoom().x(x).y(y).scaleExtent([1, 15]).on("zoom", zoom));
+        var svg = d3.select("#map")
+                .attr("width", width + margin.left + margin.right)
+                .attr("height", height + margin.top + margin.bottom)
+                .append("g")
+                .attr("transform", "translate(" + margin.left + "," + margin.top + ")")
+                .call(d3.behavior.zoom().x(x).y(y).scaleExtent([1, 8]).on("zoom", zoom))
+                .call(d3.behavior.drag().on("drag", function(){
+//                    console.log(xAxis.scale().domain());
+                    svg.selectAll("polygon")
+                            .attr("opacity", function(d){
+                                if( d.latitude < xAxis.scale().domain()[0] || d.longitude < yAxis.scale().domain()[0] ||
+                                        d.latitude > xAxis.scale().domain()[1] || d.longitude > yAxis.scale().domain()[1]) {
+                                    return "0.1";
+                                } else {
+                                    return "1.0"
+                                }
+                            });
+                }));
+        mapSvg = svg;
 
-    svg.append("rect")
-            .attr("width", width)
-            .attr("height", height);
+        svg.append("rect")
+                .attr("width", width)
+                .attr("height", height);
 
-    svg.append("g")
-            .attr("class", "x axis")
-            .attr("transform", "translate(0," + height + ")")
-            .call(xAxis);
+        svg.append("g")
+                .attr("class", "x axis")
+                .attr("transform", "translate(0," + height + ")")
+                .call(xAxis);
 
-    svg.append("g")
-            .attr("class", "y axis")
-            .call(yAxis);
+        svg.append("g")
+                .attr("class", "y axis")
+                .call(yAxis);
 
-
-    var poly = svg.selectAll("polygon")
-            .data(data)
-            .enter()
-            .append("polygon")
-            .attr("class","hex")
-            .attr("transform", function(d, i) {
-                return "translate("+x(d.TotalEmployed2011)+","+y(d.MedianSalary2011)+")";
-            })
-            .attr('points','4.569,2.637 0,5.276 -4.569,2.637 -4.569,-2.637 0,-5.276 4.569,-2.637')
-            .attr("opacity","0.8")
-            .attr("fill",function(d) {
-                return colourScale(d.ProjectedGrowth2020);
-            });
-
-
-    function zoom() {
-        svg.select(".x.axis").call(xAxis);
-        svg.select(".y.axis").call(yAxis);
-        svg.selectAll("polygon")
+        var poly = svg.selectAll("polygon")
+                .data(data)
+                .enter()
+                .append("polygon")
+                .attr("class","hex")
                 .attr("transform", function(d, i) {
-                    return "translate("+x(d.TotalEmployed2011)+","+y(d.MedianSalary2011)+")";
+                    return "translate("+x(d.latitude)+","+y(d.longitude)+")";
                 })
                 .attr('points','4.569,2.637 0,5.276 -4.569,2.637 -4.569,-2.637 0,-5.276 4.569,-2.637')
-    }
+                .attr("fill",function(d) {
+                    return colourScale(30);
+                });
+
+        function zoom() {
+            svg.selectAll("polygon")
+                    .attr("transform", function(d, i) {
+                        return "translate("+x(d.latitude)+","+y(d.longitude)+")";
+                    })
+                    .attr('points','4.569,2.637 0,5.276 -4.569,2.637 -4.569,-2.637 0,-5.276 4.569,-2.637');
+            svg.select(".x.axis").call(xAxis);
+            svg.select(".y.axis").call(yAxis);
+        }
+    });
+    getData("/Rep/meta", function(AjaxData){
+        var repMeta = JSON.parse(AjaxData);
+        var data = [];
+        var margin = {top: 30, right: 10, bottom: 20, left: 60},
+                width = window.innerWidth - margin.left - margin.right,
+                height = 100;
+        console.log(repMeta);
+        for(var day in repMeta){
+            for(var hour in repMeta[day]){
+                for(var minute in repMeta[day][hour]){
+                    var d = {};
+                    d.time = new Date(2011, 8, day, hour, minute);
+                    d.value = repMeta[day][hour][minute];
+                    data.push(d);
+                }
+            }
+        }
+        var x = d3.time.scale().range([0, width]),   //建立数据容器  把数值转为时间标度再转为宽度
+                y = d3.scale.linear().range([height, 0]);//直线标度 Learning D3.js(1)学习制作一个柱形图/直方图
+
+        var xAxis = d3.svg.axis().scale(x).orient("bottom"),//制作上图的X轴
+                yAxis = d3.svg.axis().scale(y).orient("left");//制作上图的Y轴
+
+
+        var area = d3.svg.area()//生成上图area 注意这个area是一个path，要利用attr(d)加载进去
+                .x(function(d) { return x(d.time); })
+                .y0(height) //https://github.com/mbostock/d3/wiki/SVG-Shapes#wiki-area
+                .y1(function(d) { return y(d.value); });
+
+        var svg = d3.select("#timeLine")
+                .attr("width", width + margin.left + margin.right)
+                .attr("height", height + margin.top + margin.bottom);
+
+        var focus = svg.append("g")//制作上图容器
+                .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+        x.domain(d3.extent(data.map(function(d) { return d.time; })));//利用domain方法给数据容器匹配上数据
+        y.domain([0, d3.max(data.map(function(d) { return d.value; }))]);
+
+        focus.append("path")
+                .datum(data)
+                .attr("d", area);
+        //添加上面图的XY坐标轴
+        focus.append("g")
+                .attr("class", "x axis")
+                .attr("transform", "translate(0," + height + ")")
+                .call(xAxis)
+                .call(d3.behavior.zoom().on("zoom", zoom));
+
+        focus.append("g")
+                .attr("class", "y axis")
+                .call(yAxis);
+
+        focus.append("svg:rect")
+                .attr("class", "pane")
+                .attr("width", width)
+                .attr("height", height);
+
+        function zoom() {
+            console.log(d3.event.transform);
+            svg.select("#timeLine.x.axis").call(xAxis);
+            svg.select("#timeLine.y.axis").call(yAxis);
+        }
+    });
 </script>
 </html>
