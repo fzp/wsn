@@ -12,7 +12,7 @@ for date in dateList:
     receptionDict[int(date)] = {}
     receptionMeta[int(date)] = {}
     # 2011:08:03:00:00:05:687: C1  1273 60001  1277  2947  6625     3     6  1277  1269  1272  1348  1375  1182     0     0     0     0
-    c1 = fd.getRawData(fileBase+date+'.txt', 'r')
+    c1 = fd.getRawData(fileBase+date+'.txt', deli=" ")
     for d in c1:
         (y,m,da,h,mi,sec,us) = fd.getDate(d[0])
         # print y, m, da, h, mi, sec, us
