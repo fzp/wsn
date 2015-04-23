@@ -3,6 +3,7 @@ __author__ = 'fangzhenpeng'
 import csv
 import os
 import types
+import time
 
 class formatData:
     changeType = {
@@ -15,6 +16,10 @@ class formatData:
     def getDate(self,dateStr):
         date = dateStr.split(':')
         return (int(date[0]),int(date[1]),int(date[2]),int(date[3]),int(date[4]),int(date[5]),int(date[6]))
+
+    #get timeStamp
+    def getTimeStamp(self,dateStr):
+        return time.mktime(time.strptime(dateStr[0:19],'%Y:%m:%d:%H:%M:%S'))
 
     #get date row by row,save in list
     def getRawData(self,fileName,deli = ","):
@@ -48,10 +53,18 @@ class formatData:
                     else:
                         jRange = entry[keySize]
                     for j in range(jRange):
-                        subEntry = {}
-                        for subKey,subType in value:
-                            subEntry[subKey]=self.changeType[subType](rawEntry[index])
+                        if value[0] == None:
+                            subEntry = self.changeType[value[1]](rawEntry[index])
                             index+=1
+                        else:
+                            subEntry = {}
+                            if type(value[0]) != types.TupleType:
+                                subEntry[value[0]]=self.changeType[value[1]](rawEntry[index])
+                                index+=1
+                            else:
+                                for subKey,subType in value:
+                                    subEntry[subKey]=self.changeType[subType](rawEntry[index])
+                                    index+=1
                         entry[key].append(subEntry)
             structuredDate.append(entry)
         return structuredDate
@@ -60,4 +73,4 @@ if __name__ == '__main__':
     fd = formatData()
     format = (('timeStamp','string'),('type','string'),('sID','int'),('sinkID','int'),('parentID','int'),('neighbor',(('ID','int'),('RSSI','int'),('ETX','float'))))
     date = fd.getFormatData(format,'C2-60001-2011-08-03.txt', ' ')
-    print date[0]
+    print fd.getTimeStamp(date[0]['timeStamp'])

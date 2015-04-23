@@ -9,3 +9,4 @@ WSNData/*.pyc
 wsn.iml
 
 *.pyc
+routerTabel.py
