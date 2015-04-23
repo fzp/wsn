@@ -1,6 +1,11 @@
 __author__ = 'fangzhenpeng'
 
 from formatData import formatData
+def addLink(router,son,father):
+    if router.has_key(son) and router[son][0] == father:
+        router[son][1]+=1
+    else:
+        router[son] = [father,1]
 
 def getC1():
     getEnvironment={
@@ -45,9 +50,9 @@ def getC1():
         for type in environment:
             routerTable[timeStamp][log['sID']][type] = getEnvironment[type](log[type])
         if log['pathSize'] > 0:
-            routerTable[timeStamp]['router'][log['sID']] = log['parentID']
+            addLink(routerTable[timeStamp]['router'],log['sID'],log['parentID'])
             for i in range(len(log['path'])-1):
-                routerTable[timeStamp]['router'][log['path'][i]] = log['path'][i+1]
+                addLink(routerTable[timeStamp]['router'],log['path'][i],log['path'][i+1])
     return  routerTable
 
 if __name__ == "__main__":
