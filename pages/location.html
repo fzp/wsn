@@ -121,9 +121,9 @@ getData("/Data/NodeInfo", function(AjaxData){
         data.push(d);
     }
     console.log(data);
-    var margin = {top: 30, right: 10, bottom: 20, left: 60},
+    var margin = {top: 30, right: 300, bottom: 20, left: 60},
             width = window.innerWidth - margin.left - margin.right,
-            height = window.innerHeight - margin.top - margin.bottom - 100;
+            height = window.innerHeight - margin.top - margin.bottom - 300;
     g_map.margin = margin;
     var xMax = d3.max(data, function(d) { return +d.latitude; }),
             xMin = d3.min(data, function(d) { return +d.latitude; }),
@@ -266,6 +266,14 @@ getData("/Rep/meta", function(AjaxData){
     var focus = svg.append("g")//制作上图容器
             .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
+    focus.append("defs").append("clipPath")
+            .attr("id", "timeLinelip")
+            .append("rect")
+            .attr("width", width)
+            .attr("height", height);
+
+    focus.attr("clip-path", "url(#timeLinelip)");
+
     x.domain(d3.extent(data.map(function(d) { return d.time; })));//利用domain方法给数据容器匹配上数据
     y.domain([0, d3.max(data.map(function(d) { return d.value; }))]);
 
@@ -273,12 +281,12 @@ getData("/Rep/meta", function(AjaxData){
             .datum(data)
             .attr("d", area);
     //添加上面图的XY坐标轴
-    focus.append("g")
+    svg.append("g")
             .attr("class", "x axis")
-            .attr("transform", "translate(0," + height + ")")
+            .attr("transform", "translate("+margin.left+"," + margin.top+height + ")")
             .call(xAxis);
 
-    focus.append("g")
+    svg.append("g")
             .attr("class", "y axis")
             .call(yAxis);
 
@@ -356,7 +364,6 @@ getData("/Rep/meta", function(AjaxData){
             lines.exit().remove();
         }
         var group = g_map.svg.append('g').attr('class', 'routes').attr("id", "routes");
-//                .attr("transform", "translate(" + g_map.margin.left + "," + g_map.margin.top + ")");
         var groupElement = document.getElementById("routes");
         durationShow.onclick = function() {
             getData("/Rep/duration/?s="+startInput.value+"&e="+endInput.value, function (response) {
