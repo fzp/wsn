@@ -8,12 +8,6 @@ def addLink(router,son,father):
         router[son] = [father,1]
 
 def getC1():
-    getEnvironment={
-        'humidity':lambda x:x,
-        'temperature':lambda x:x,
-        'light':lambda x:x,
-    }
-
     fileBase = 'C1-60001-2011-08-'
     dateList = ['03']
     format = (('timeStamp','string'),('type','string'),('sID','int'),('sinkID','int'),
@@ -47,8 +41,10 @@ def getC1():
             if routerTable[lastTimeStamp].has_key(log['sID']):
                 timeStamp = nextTimeStamp
         routerTable[timeStamp][log['sID']] = {}
-        for type in environment:
-            routerTable[timeStamp][log['sID']][type] = getEnvironment[type](log[type])
+        routerTable[timeStamp][log['sID']]['temperature'] = log['temperature']*0.01 - 40
+        routerTable[timeStamp][log['sID']]['humidity'] = \
+            (routerTable[timeStamp][log['sID']]['temperature']-25)*(0.01+0.00008*log['humidity'])\
+            - 4 + 0.0405*log['humidity'] - 0.0000028*log['humidity']*log['humidity']
         if log['pathSize'] > 0:
             addLink(routerTable[timeStamp]['router'],log['sID'],log['parentID'])
             for i in range(len(log['path'])-1):
