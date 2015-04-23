@@ -46,9 +46,8 @@ def getC1():
             routerTable[timeStamp][log['sID']][type] = getEnvironment[type](log[type])
         if log['pathSize'] > 0:
             routerTable[timeStamp]['router'][log['sID']] = log['parentID']
-            for link in log['path']:
-                for i in range(len(log['path'])-1):
-                    routerTable[timeStamp]['router'][log['path'][i]] = log['path'][i+1]
+            for i in range(len(log['path'])-1):
+                routerTable[timeStamp]['router'][log['path'][i]] = log['path'][i+1]
     return  routerTable
 
 if __name__ == "__main__":
