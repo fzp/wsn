@@ -58,6 +58,8 @@ def getC1FromFile():
     file.close()
     return c1
 
+routeTable = getC1FromFile()
+
 if __name__ == "__main__":
     #file = open('03','w')
     #file.write(pickle.dumps(getC1()))

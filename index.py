@@ -6,6 +6,8 @@ import json
 from WSNData import nodeInfo
 from WSNData.receptionRatio import receptionDict, receptionMeta
 import time
+from WSNData.formatData import formatData
+fd = formatData()
 
 class MainHandler(tornado.web.RequestHandler):
     def get(self):
@@ -40,6 +42,50 @@ class ReceptionMetaHandler(tornado.web.RequestHandler):
 
 from dateutil import rrule
 from datetime import datetime, timedelta
+from WSNData.dataAggregation import routerTable
+
+class RouteHandler(tornado.web.RequestHandler):
+
+    def insert(self, dict, src, dst):
+        if not src in dict:
+            dict[src] = {}
+        if not dst in dict[src]:
+            dict[src][dst] = 1
+        else:
+            dict[src][dst] += 1
+
+    def get(self, args):
+        print 'RouteHandler',
+        r = {}
+        s = self.get_argument("s")
+        e = self.get_argument("e")
+        print "s=%s,e=%s" % (s, e)
+        st = datetime.strptime(s, '%Y-%m-%d %H-%M-%S')
+        et = datetime.strptime(e, '%Y-%m-%d %H-%M-%S')
+        for dt in rrule.rrule(rrule.MINUTELY, dtstart=st, until=et):
+            try:
+                tempArray = receptionDict[dt.day][dt.hour][dt.minute]
+                for troute in tempArray:
+                    cnt = int(troute[8])
+                    if(cnt < 11 and cnt > 0):
+                        routes = troute[9:9+cnt]
+                        # print routes
+                        self.insert(r, int(troute[2]), int(routes[0]))
+                        # print int(troute[2]), int(routes[0])
+                        for rr in range(0, cnt-1):
+                            self.insert(r, int(routes[rr]), int(routes[rr+1]))
+                            # print int(routes[rr]), int(routes[rr+1])
+                    else:
+                        continue
+            except KeyError:
+                print "no data at", dt.day, dt.hour, dt.minute
+        print r
+        total = 0
+        for k in r.keys():
+            for l in r[k].keys():
+                total += 1
+        print total, " lines"
+        self.write(json.dumps(r))
 
 class ReceptionDurationHandler(tornado.web.RequestHandler):
     def get(self, args):
@@ -54,6 +100,7 @@ class ReceptionDurationHandler(tornado.web.RequestHandler):
                 responseArray += receptionDict[dt.day][dt.hour][dt.minute]
             except KeyError:
                 print "no data at", dt.day, dt.hour, dt.minute
+        print responseArray
         self.write(json.dumps(responseArray))
 
 settings = \
@@ -69,6 +116,7 @@ application = tornado.web.Application([
     (r"/Rep/meta", ReceptionMetaHandler),
     (r"/Rep/duration/(.*)", ReceptionDurationHandler),
     (r"/Rep/(.*)", ReceptionRatioHandler),
+    (r"/route/(.*)", RouteHandler)
 ])
 
 if __name__ == "__main__":

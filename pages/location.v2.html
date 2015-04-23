@@ -60,10 +60,20 @@
 <div id="Left-Container">
     <svg id="Map"></svg>
     <svg id="TimeLine"></svg>
+    <div id="TimeControl">
+        <p id="s"></p>
+        <p id="e"></p>
+        <input type="button" id="getRouteBtn" value="获取路由snapshot"/>
+        <label>Search <input type="text" id="NodeID" name="Name" /></label>
+    </div>
 </div>
 <div id="Info"></div>
 </body>
 <script type="text/javascript">
+    function rgbToHex(r, g, b) {
+        return "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
+    }
+
     // if html is string, innerHtml = html;
     // else set html as the inner Element of Info
     function Info(html) {
@@ -75,6 +85,16 @@
         }
     }
     var NodeInfo = {};
+    var gObjects = {};
+    var line = d3.svg.line()
+            .x(function (d) {
+                console.log("x" + d.toString());
+                return gObjects.x(NodeInfo[d].latitude);
+            })
+            .y(function (d) {
+                console.log("y" + d.toString());
+                return gObjects.y(NodeInfo[d].longitude);
+            });
     // Get node info
     getData("/Data/NodeInfo", function(AjaxData) {
         var container = document.getElementById("Left-Container");
@@ -92,7 +112,7 @@
             data.push(d);
             NodeInfo[nodeId] = d;
         }
-        NodeInfo[60001] = NodeInfo[1182];
+        NodeInfo[1182] = NodeInfo[60001];
         var margin = {top: 20, right: 20, bottom: 20, left: 60},
                 width = container.clientWidth - margin.left - margin.right,
                 height = (container.clientHeight - 100) - margin.top - margin.bottom;
@@ -103,9 +123,14 @@
         var x = d3.scale.linear()
                 .domain([xMin, xMax])
                 .range([0, width]);
+
         var y = d3.scale.linear()
                 .domain([yMin, yMax])
                 .range([height, 0]);
+
+        gObjects['x'] = x;
+        gObjects['y'] = y;
+
         var xAxis = d3.svg.axis()
                 .scale(x)
                 .orient("bottom")
@@ -144,6 +169,10 @@
                 .attr("width", width)
                 .attr("height", height);
 
+        g.append("g")
+                .attr("id", "route")
+                .attr("clip-path", "url(#mapClipPath)");
+
         var polygons = g.append("g")
                 .attr("id", "polygons")
                 .attr("clip-path", "url(#mapClipPath)");
@@ -152,7 +181,7 @@
                 .data(data)
                 .enter()
                 .append("polygon")
-                .on("click", function(d){console.log(d)})
+                .on("click", function(d){Info(d.nodeId.toString());})
                 .attr("class","hex")
                 .attr("transform", function(d, i) {
                     return "translate("+x(d.latitude)+","+y(d.longitude)+")";
@@ -173,6 +202,28 @@
             svg.select(".x.axis").call(xAxis);
             svg.select(".y.axis").call(yAxis);
         }
+
+        document.getElementById("NodeID").addEventListener("keyup", function(){
+            var searchNodeIdText = document.getElementById("NodeID").value;
+            var NodeIdSearch = parseInt(searchNodeIdText);
+            if(!isNaN(NodeIdSearch)) {
+                console.warn(searchNodeIdText);
+                d3.select("#Map").selectAll("polygon")
+                        .attr("fill", function(d){
+                            if(d.nodeId.indexOf(searchNodeIdText) == 0) {
+                                return "#007F00";
+                            } else {
+                                return "#E47100";
+                            }
+                        })
+            }
+            if(searchNodeIdText.length == 0) {
+                d3.select("#Map").selectAll("polygon")
+                        .attr("fill", function(d){
+                            return "#E47100";
+                        })
+            }
+        });
     });
     // Get reception meta info
     getData("/Rep/meta", function(AjaxData){
@@ -182,7 +233,7 @@
             for(var hour in repMeta[day]){
                 for(var minute = 0; minute < 60; minute += 10) {
                     var d = {};
-                    d.time = new Date(2011, 8, day, hour, minute);
+                    d.time = new Date(2011, 7, day, hour, minute);
                     d.value = 0;
                     for (var subm = 0; subm < 10; subm += 1) {
                         d.value += repMeta[day][hour][minute + subm];
@@ -206,6 +257,9 @@
             yAxis = d3.svg.axis().scale(y).orient("left").ticks(4);//制作上图的Y轴
         x.domain(d3.extent(data.map(function(d) { return d.time; })));//利用domain方法给数据容器匹配上数据
         y.domain([0, d3.max(data.map(function(d) { return d.value; }))]);
+        gObjects["time"] = {};
+        gObjects["time"]["x"] = x;
+        gObjects["time"]["y"] = y;
         var svg = d3.select("#TimeLine")
                 .attr("width", width + margin.left + margin.right)
                 .attr("height", height + margin.top + margin.bottom);
@@ -219,9 +273,6 @@
         focus.append("g")
                 .attr("class", "y axis")
                 .call(yAxis);
-
-        function brushed() {
-        }
 
         var state = focus.selectAll(".rep")
                 .data(data)
@@ -252,13 +303,96 @@
                 .x(x)
                 .on("brush", brushed);
 
+        function brushed() {
+            console.log(brush.extent());
+            var s = document.getElementById("s");
+            var e = document.getElementById("e");
+            s.innerHTML = brush.extent()[0];
+            e.innerHTML = brush.extent()[1];
+        }
+
         focus.append("g")
                 .attr("class", "x brush")
                 .call(brush)
                 .selectAll("rect")
                 .attr("y", -6)
                 .attr("height", height + 7);
-
+        if(document.getElementById("TimeControl")){
+            var s = document.getElementById("s");
+            var e = document.getElementById("e");
+            var format = d3.time.format("%Y-%m-%d %H-%M-%S");
+            s.innerHTML = gObjects.time.x.domain()[0];
+            e.innerHTML = gObjects.time.x.domain()[1];
+            var btn = document.getElementById("getRouteBtn");
+            btn.onclick = function(){
+                //http://localhost:7777/route/?s=2011-08-03%2000-00-01&e=2011-08-03%2000-21-01
+                getData("/route/?s=" + format(brush.extent()[0]) +
+                        "&e=" + format(brush.extent()[1]),
+                        function (response) {
+                            var links = [];
+                            var TopoList = JSON.parse(response);
+                            console.log(TopoList);
+                            for(var topo in TopoList){
+                                if( NodeInfo[topo] === undefined) {
+                                    continue;
+                                }
+                                for(var des in TopoList[topo]){
+                                    var real_Des = des;
+                                    if(real_Des == 1182) {
+                                        real_Des = 60001;
+                                    }
+                                    if(NodeInfo[real_Des] === undefined ){
+                                        continue;
+                                    }
+                                    var newLink = {
+                                        link: [
+                                            topo,
+                                            real_Des
+                                        ],
+                                        cnt: TopoList[topo][des]
+                                    };
+                                    links.push(newLink);
+                                }
+                            }
+                            document.getElementById("route").innerHTML = "";
+                            var lines = d3.select("#route").selectAll(".line")
+                                    .data(links);
+                            lines.enter().append("path")
+                                    .attr("class", "line")
+                                    .attr("routeId", function(d,i){return i.toString()})
+                                    .attr("stroke", function(d){
+//                                        var rch = 127+ d.cnt;
+//                                        rch = rch > 255 ? 255 : rch;
+                                        return rgbToHex(255, 170, 170);
+                                    })
+                                    .attr("stroke-width", function(d){
+                                        return Math.log(d.cnt);
+                                    })
+                                    .attr("d", function(d){return line(d.link)});
+                });
+            }
+        }
     });
+    // Draw Route topology
+    function drawLinks() {
+        var links = [];
+        // link:
+        var demoLink = {
+            link: [
+                1183,
+                1026
+            ],
+            cnt: 10
+        };
+        links.push(demoLink);
+        var lines = d3.select("#route").selectAll(".line")
+                .data(links);
+        lines.enter().append("path")
+                .attr("class", "line")
+                .attr("routeId", function(d,i){return i.toString()})
+                .attr("stroke", "#000000")
+                .attr("d", function(d){return line(d.link)});
+    }
+
 </script>
 </html>

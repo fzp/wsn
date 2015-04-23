@@ -3,6 +3,7 @@
  */
 // OnComplete: 完成时的回调函数，参数是data
 function getData(address, onComplete) {
+    console.log("Get Data: " + address);
     var xhr = new XMLHttpRequest();
     xhr.onreadystatechange = function () {
         if (xhr.readyState == 4) {
