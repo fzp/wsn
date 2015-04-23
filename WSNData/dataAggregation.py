@@ -1,5 +1,6 @@
 __author__ = 'fangzhenpeng'
 
+import pickle
 from formatData import formatData
 def addLink(router,son,father):
     if router.has_key(son) and router[son][0] == father:
@@ -12,7 +13,6 @@ def getC1():
     dateList = ['03']
     format = (('timeStamp','string'),('type','string'),('sID','int'),('sinkID','int'),
               ('parentID','int'),('humidity','int'),('temperature','int'),('light','int'),('path',(None,'int')))
-    environment = ('humidity','temperature','light')
     fd = formatData()
     routerLog = {}
     for date in dateList:
@@ -51,5 +51,17 @@ def getC1():
                 addLink(routerTable[timeStamp]['router'],log['path'][i],log['path'][i+1])
     return  routerTable
 
+def getC1FromFile():
+    file = open('03')
+    c1 = file.read()
+    c1 = pickle.loads(c1)
+    file.close()
+    return c1
+
 if __name__ == "__main__":
-    print getC1()[1312301400]
+    #file = open('03','w')
+    #file.write(pickle.dumps(getC1()))
+    #print pickle.dumps(getC1()[1312301400])
+    #file.close()
+
+    print getC1FromFile()[1312301400]
