@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <title>网络测量-拓扑结构展示</title>
+    <style>
+        body {
+            position: absolute;
+            background-color: #fff8dd;
+            height: 100%;
+            width: 100%;
+        }
+        #Left-Container {
+            position: absolute;
+            background-color: #e8ffca;
+            top: 0px;
+            right: 300px;
+            bottom: 0px;
+            left: 0px;
+            height: 100%;
+        }
+        #Info {
+            width: 300px;
+            background-color: #ccffd3;
+            position: absolute;
+            top: 0px;
+            right: 0px;
+            bottom: 0px;
+            overflow: auto;
+        }
+        .axis {
+        }
+        .axis path,
+        .axis line {
+            fill: none;
+            stroke: rgba(0,0,0,0.1);
+            shape-rendering: crispEdges;
+        }
+        .axis text {
+            font-family: sans-serif;
+            font-size: 11px;
+            fill: #666;
+        }
+        rect {
+            fill: transparent;
+            shape-rendering: crispEdges;
+        }
+        .brush .extent {
+            stroke: #fff;
+            fill: rgba(255,127,0, 1);
+            fill-opacity: .3;
+            shape-rendering: crispEdges;
+        }
+
+    </style>
+    <script type="text/javascript" charset="utf-8" src="/static/d3.js"></script>
+    <script type="text/javascript" charset="utf-8" src="/static/location/data.js"></script>
+</head>
+<body>
+<div id="Left-Container">
+    <svg id="Map"></svg>
+    <svg id="TimeLine"></svg>
+</div>
+<div id="Info"></div>
+</body>
+<script type="text/javascript">
+    // if html is string, innerHtml = html;
+    // else set html as the inner Element of Info
+    function Info(html) {
+        if(typeof( html )=="string") {
+            document.getElementById("Info").innerHTML = html;
+        } else if( html instanceof HTMLElement) {
+            document.getElementById("Info").innerHTML = "";
+            document.getElementById("Info").appendChild(html);
+        }
+    }
+    var NodeInfo = {};
+    // Get node info
+    getData("/Data/NodeInfo", function(AjaxData) {
+        var container = document.getElementById("Left-Container");
+        console.log("/Data/NodeInfo");
+        var jsonObj = JSON.parse(AjaxData);
+        var data = [];
+
+        for(var nodeId in jsonObj) {
+            var nodeInfo = jsonObj[nodeId];
+            var d = {
+                "nodeId":nodeInfo[0],
+                "latitude":nodeInfo[2],
+                "longitude":nodeInfo[3]
+            };
+            data.push(d);
+            NodeInfo[nodeId] = d;
+        }
+        NodeInfo[60001] = NodeInfo[1182];
+        var margin = {top: 20, right: 20, bottom: 20, left: 60},
+                width = container.clientWidth - margin.left - margin.right,
+                height = (container.clientHeight - 100) - margin.top - margin.bottom;
+        var xMax = d3.max(data, function(d) { return +d.latitude; }),
+                xMin = d3.min(data, function(d) { return +d.latitude; }),
+                yMax = d3.max(data, function(d) { return +d.longitude; }),
+                yMin = d3.min(data, function(d) { return +d.longitude; });
+        var x = d3.scale.linear()
+                .domain([xMin, xMax])
+                .range([0, width]);
+        var y = d3.scale.linear()
+                .domain([yMin, yMax])
+                .range([height, 0]);
+        var xAxis = d3.svg.axis()
+                .scale(x)
+                .orient("bottom")
+                .ticks(5)
+                .tickSize(-height)
+                .tickFormat(function(d) { return d.toFixed(4); });
+        var yAxis = d3.svg.axis()
+                .scale(y)
+                .orient("left")
+                .ticks(5)
+                .tickSize(-width)
+                .tickFormat(function(d) { return d.toFixed(4); });
+        var svg = d3.select("#Map")
+                .attr("width", width + margin.left + margin.right)
+                .attr("height", height + margin.top + margin.bottom);
+        var g = svg.append("g")
+                .attr("transform", "translate(" + margin.left + "," + margin.top + ")")
+                .call(d3.behavior.zoom().x(x).y(y).scaleExtent([1, 8]).on("zoom", zoom))
+                .call(d3.behavior.drag().on("drag", function(){
+                }));
+        g.append("rect")
+                .attr("width", width)
+                .attr("height", height);
+        g.append("g")
+                .attr("class", "x axis")
+                .attr("transform", "translate(0," + height + ")")
+                .call(xAxis);
+
+        g.append("g")
+                .attr("class", "y axis")
+                .call(yAxis);
+
+        g.append("defs").append("clipPath")
+                .attr("id", "mapClipPath")
+                .append("rect")
+                .attr("width", width)
+                .attr("height", height);
+
+        var polygons = g.append("g")
+                .attr("id", "polygons")
+                .attr("clip-path", "url(#mapClipPath)");
+
+        var poly = polygons.selectAll("polygon")
+                .data(data)
+                .enter()
+                .append("polygon")
+                .on("click", function(d){console.log(d)})
+                .attr("class","hex")
+                .attr("transform", function(d, i) {
+                    return "translate("+x(d.latitude)+","+y(d.longitude)+")";
+                })
+                .attr('points','4.569,2.637 0,5.276 -4.569,2.637 -4.569,-2.637 0,-5.276 4.569,-2.637')
+                .attr("fill",function(d) {
+                    return "#FF7F00";
+                });
+
+        function zoom() {
+            svg.selectAll("polygon")
+                    .attr("transform", function(d, i) {
+                        return "translate("+x(d.latitude)+","+y(d.longitude)+")";
+                    })
+                    .attr('points','4.569,2.637 0,5.276 -4.569,2.637 -4.569,-2.637 0,-5.276 4.569,-2.637');
+            svg.selectAll(".line")
+                    .attr("d", function(d){return line(d.link)});
+            svg.select(".x.axis").call(xAxis);
+            svg.select(".y.axis").call(yAxis);
+        }
+    });
+    // Get reception meta info
+    getData("/Rep/meta", function(AjaxData){
+        var repMeta = JSON.parse(AjaxData);
+        var data = [];
+        for(var day in repMeta){
+            for(var hour in repMeta[day]){
+                for(var minute = 0; minute < 60; minute += 10) {
+                    var d = {};
+                    d.time = new Date(2011, 8, day, hour, minute);
+                    d.value = 0;
+                    for (var subm = 0; subm < 10; subm += 1) {
+                        d.value += repMeta[day][hour][minute + subm];
+                    }
+                    // TODO 3 should be the "topology change"
+                    d.stack = [
+                        {type: 'r', y0: 0, y1: d.value}, // r for rep
+                        {type: 'c', y0: d.value, y1: d.value + 30} // c for change
+                    ];
+                    data.push(d);
+                }
+            }
+        }
+        var container = document.getElementById("Left-Container");
+        var margin = {top: 30, right: 10, bottom: 20, left: 60},
+                width = container.clientWidth - margin.left - margin.right,
+                height = 100 - margin.top - margin.bottom;
+        var x = d3.time.scale().range([0, width]),   //建立数据容器  把数值转为时间标度再转为宽度
+            y = d3.scale.linear().range([height, 0]);//直线标度 Learning D3.js(1)学习制作一个柱形图/直方图
+        var xAxis = d3.svg.axis().scale(x).orient("bottom"),//制作上图的X轴
+            yAxis = d3.svg.axis().scale(y).orient("left").ticks(4);//制作上图的Y轴
+        x.domain(d3.extent(data.map(function(d) { return d.time; })));//利用domain方法给数据容器匹配上数据
+        y.domain([0, d3.max(data.map(function(d) { return d.value; }))]);
+        var svg = d3.select("#TimeLine")
+                .attr("width", width + margin.left + margin.right)
+                .attr("height", height + margin.top + margin.bottom);
+        var focus = svg.append("g")//制作上图容器
+                .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+        focus.append("g")
+                .attr("class", "x axis")
+                .attr("transform", "translate(0," + height + ")")
+                .call(xAxis);
+
+        focus.append("g")
+                .attr("class", "y axis")
+                .call(yAxis);
+
+        function brushed() {
+        }
+
+        var state = focus.selectAll(".rep")
+                .data(data)
+                .enter().append("g")
+                .attr("class", "g")
+                .attr("transform", function(d) { return "translate(" + x(d.time) + ",0)"; })
+                .on("mouseover", function(d){
+                    console.log(d.time);
+                });
+        var t1 = new Date(2011, 8, 1, 1, 1);
+        var t2 = new Date(2011, 8, 1, 1, 11);
+        var xwidth = x(t2)-x(t1);
+        state.selectAll("rect")
+                .data(function(d) { return d.stack; })
+                .enter().append("rect")
+                .attr("width", xwidth)
+                .attr("y", function(d) { return y(d.y1); })
+                .attr("height", function(d) { return y(d.y0) - y(d.y1); })
+                .style("fill", function(d) {
+                    if(d.type == 'r') {
+                        return "#98abc5";
+                    } else if(d.type == 'c') {
+                        return '#6b486b';
+                    }
+                });
+
+        var brush = d3.svg.brush()
+                .x(x)
+                .on("brush", brushed);
+
+        focus.append("g")
+                .attr("class", "x brush")
+                .call(brush)
+                .selectAll("rect")
+                .attr("y", -6)
+                .attr("height", height + 7);
+
+    });
+</script>
+</html>
