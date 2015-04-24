@@ -189,7 +189,7 @@
                 .append("polygon")
                 .on("click", function(d){
                     Info(d.nodeId.toString());
-                    getData("/topo/id/"+d.nodeId.toString(), function(aggregatedTopo){
+                    getData("/topo/id/?id="+d.nodeId.toString()+"&m="+"a", function(aggregatedTopo){
                         drawLinks(aggregatedTopo);
                         d3.select("#route").selectAll(".line")
                             .attr("stroke", function(ld){
@@ -200,8 +200,15 @@
                                     rch = rch > 255 ? 255 : rch;
                                     return rgbToHex(rch, 170, 170);
                                 }
-                            })
-                    })
+                            });
+                        getData("/topo/id/?id="+d.nodeId.toString()+"&m="+"r", function(aggregatedTopo){
+                            var links = JSON.parse(aggregatedTopo);
+                            console.log(links);
+                            for(var linkId in links){
+
+                            }
+                        });
+                    });
                 })
                 .on("mouseover", function(d){
                     Info(d.nodeId.toString());
@@ -291,6 +298,7 @@
                 .attr("width", width + margin.left + margin.right)
                 .attr("height", height + margin.top + margin.bottom);
         var focus = svg.append("g")//制作上图容器
+                .attr("id", "timeLineGroup")
                 .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
         focus.append("g")
                 .attr("class", "x axis")

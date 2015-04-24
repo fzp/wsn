@@ -106,11 +106,17 @@ class ReceptionDurationHandler(tornado.web.RequestHandler):
 class topoChangeHandler(tornado.web.RequestHandler):
     def get(self, args):
         pass
+
 from WSNData.topoChange import getRelatedTopo
 class topoIdHandler(tornado.web.RequestHandler):
     def get(self, args):
         print "topoIdHandler", args
-        self.write(json.dumps(getRelatedTopo(args)))
+        id = self.get_argument("id")
+        m = self.get_argument("m")
+        if m == "a":
+            self.write(json.dumps(getRelatedTopo(id)["aggregate"]))
+        elif m == "r":
+            self.write(json.dumps(getRelatedTopo(id)["raw"]))
 
 settings = \
     {

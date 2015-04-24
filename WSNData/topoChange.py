@@ -65,13 +65,18 @@ def getTopoIterator():
 
 def getRelatedTopo(nodeId):
     relatedTopos = []
+    rawTopos = []
     for (topo, raw) in getTopoIterator():
         # print topo, raw
         for id in topo:
             if int(id) == int(nodeId):
                 # print id, nodeId, raw
                 relatedTopos.append(topo)
-    return routeAggregate(relatedTopos)
+                rawTopos.append(raw)
+    return {
+        "aggregate":routeAggregate(relatedTopos),
+        "raw": rawTopos
+    }
 
 r = {}
 changeMeta = {}
