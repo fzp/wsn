@@ -100,15 +100,18 @@ var tem = [26.250000,26.020000,26.020000,26.250000,25.879999,26.030001,26.090000
                     .attr("class", function(d, i) {
                         var Obj = c1PackageList[parseInt(d.point.id)];
                         if(Obj) {
-                            console.log(c1PackageList[parseInt(d.point.id)].temperature);
-                            if (tem[i] > 35) return "q0-9"
-                            else if (tem[i] > 29.5) return "q1-9"
-                            else if (tem[i] > 28.7) return "q1-9"
-                            else if (tem[i] > 27.9) return "q2-9"
-                            else if (tem[i] > 27.1) return "q3-9"
-                            else if (tem[i] > 26.3) return "q4-9"
-                            else if (tem[i] > 25.5) return "q5-9"
-                            else return "q8-9"
+                            var temp = c1PackageList[parseInt(d.point.id)].temperature;
+                            if(temp > 40) return "q8-9";
+                            if (temp > 35) return "q0-9";
+                            else if (temp > 29.5) return "q1-9";
+                            else if (temp > 28.7) return "q1-9";
+                            else if (temp > 27.9) return "q2-9";
+                            else if (temp > 27.1) return "q3-9";
+                            else if (temp > 26.3) return "q4-9";
+                            else if (temp > 25.5) return "q5-9";
+                            else return "q8-9";
+                        }else{
+                            return "q8-9";
                         }})
 			.attr("d", polygon);
 
@@ -122,3 +125,4 @@ var tem = [26.250000,26.020000,26.020000,26.250000,25.879999,26.030001,26.090000
         });
     });
 </script>
+</body>
