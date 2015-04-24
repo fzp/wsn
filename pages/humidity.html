@@ -1,0 +1,110 @@
+
+<!DOCTYPE html>
+<meta charset="utf-8">
+<style>
+
+    path {
+        stroke: #fff;
+    }
+
+    path:first-child {
+        fill: yellow !important;
+    }
+
+    circle {
+        fill: #000;
+        pointer-events: none;
+    }
+
+.q0-9 { fill: #FE00FE; }
+.q1-9 { fill: #FE0000; }
+.q2-9 { fill: #FF6561; }
+.q3-9 { fill: #FE9962; }
+.q4-9 { fill: #FEFF94; }
+.q5-9 { fill: #CDFECE; }
+.q6-9 { fill: #9BFEFE; }
+.q7-9 { fill: #0195FE; }
+.q8-9 { fill: #FFFFFF; }
+
+</style>
+<body>
+<script type="text/javascript" charset="utf-8" src="/static/d3.js"></script>
+<script type="text/javascript" charset="utf-8" src="/static/location/data.js"></script>
+<script>
+var tem = [91.343231,94.509583,90.804024,95.103836,92.519997,95.440376,91.496407,97.361839,93.969772,93.775826,94.793961,95.216568,93.186119,96.668930,94.270287,92.184135,94.026825,96.822449,95.491653,91.220627,91.904152,95.762657,92.940506,92.026512,90.042938,92.751465,93.320717,93.443733,99.006416,95.837204,90.164772,92.354912,94.714317,93.699600,93.095459,95.506691,90.270012,95.324600,96.444054,91.975296,94.085960,92.933701,97.296356,92.581200,92.171715,93.484207,94.997864,93.785828,90.746788,93.026993,93.849426,90.484123,95.095924,90.737061,95.822693,94.532898,95.634537,94.025841,91.738083,95.363754,95.920326,96.150673,89.823257,91.937263,96.610580,97.107567,96.803162,96.955368,96.141205,94.600533,98.903610,93.301964,95.688408,95.781990,93.093918,94.543167,92.092201,90.411072,96.438782,92.768806,92.878441,92.813751,93.062218,92.937988,93.690659,94.135796,92.224495,97.260445,91.760498,96.147636,92.366745,95.219521,92.411064,97.707832,90.775490,95.895897,95.738388,93.208267,94.551414,93.308838,90.566841,91.142403,90.854622,95.396500,97.142082,96.078896,96.572952,90.172020,93.533913,93.110573,94.760643,93.420151,94.680504,96.881508,93.973839,90.557129,89.123177,91.951218,98.003510,92.978920,93.917801,96.421227,89.635536,96.642281,96.355171,93.086327,95.846642,95.397263,91.487717,91.628296,96.437904,97.171432,91.501099,90.131393,92.667557,97.981979,93.065765,89.545975,94.494186,93.974083,98.205841,96.896683,94.030945,91.169891,95.732742,93.411736,97.003387,96.513412,92.725174,95.242058,97.280586,92.167847,90.245026,91.934128,92.707619,93.353333,94.429352,94.701088,90.678688,95.206566,93.690514,96.777702,90.277100,94.739799,97.115364,95.703117,93.764359,93.928886,94.382950,94.638382,95.375092,92.863922,95.860809,97.198029,88.363388,90.676071,96.402786,90.581421,93.511909,95.577553,93.572678,93.598793,94.197929,94.357216,96.282341,96.186874,94.042130,95.946602,95.673637,87.339821,95.531586,94.788979,96.746010,94.817383,94.879288,94.120888,91.388771,91.230438,90.469566,93.080345,93.622040,93.652634,96.055969,93.864693,93.835526,91.124359,96.451920,93.788139,92.987839,93.387985,92.756271,92.565002,92.696335,96.279716,95.470268,96.810616,97.369629,94.169823,94.017517,93.456383,93.607162,93.246071,93.426620,96.737038,97.816589,89.469376,93.331688,89.399742,91.259872,94.519363,94.615959,94.153671,92.946259,95.563576,89.863297,95.680580,92.918633,96.830566,89.523293,94.673836]
+
+    getData("/Data/NodeInfo", function(AjaxData) {
+
+        console.log("/Data/NodeInfo");
+        var jsonObj = JSON.parse(AjaxData);
+        var data = [];
+        var vertices = [];
+        var width = 960,
+                height = 500;
+        for(var nodeId in jsonObj) {
+            var nodeInfo = jsonObj[nodeId];
+            var d = {
+                "nodeId":nodeInfo[0],
+                "latitude":nodeInfo[2],
+                "longitude":nodeInfo[3]
+            };
+            data.push(d);
+        }
+        var xMax = d3.max(data, function(d) { return +d.latitude; }),
+                xMin = d3.min(data, function(d) { return +d.latitude; }),
+                yMax = d3.max(data, function(d) { return +d.longitude; }),
+                yMin = d3.min(data, function(d) { return +d.longitude; });
+        console.log([xMax, xMin, yMax, yMin]);
+        var xGap = xMax-xMin, yGap=yMax-yMin;
+        for(var i in data) {
+            var d = data[i];
+            vertices.push([
+                        (d['latitude']-xMin)/xGap*width,
+                        (yMax - d['longitude'])/yGap*height
+            ]);
+        }
+
+        var voronoi = d3.geom.voronoi()
+                .clipExtent([[0, 0], [width, height]]);
+
+        var svg = d3.select("body").append("svg")
+                .attr("width", width)
+                .attr("height", height)
+                .on("mousemove", function() { vertices[0] = d3.mouse(this); redraw(); });
+
+        var path = svg.append("g").selectAll("path");
+
+        svg.selectAll("circle")
+                .data(vertices.slice(1))
+                .enter().append("circle")
+                .attr("transform", function(d) { return "translate(" + d + ")"; })
+                .attr("r", 1.5);
+
+        redraw();
+
+        function redraw() {
+            path = path
+                    .data(voronoi(vertices), polygon);
+
+            path.exit().remove();
+
+            path.enter().append("path")
+                    .attr("class", function(d, i) { 	  
+			  if(tem[i]>100) return "q0-9"
+			  else if(tem[i]>100) return "q0-9"
+			  else if(tem[i]>98) return "q1-9"
+			  else if(tem[i]>96) return "q2-9"
+			  else if(tem[i]>94) return "q3-9"
+			  else if(tem[i]>92) return "q4-9"
+			  else if(tem[i]>90) return "q5-9"
+			  else return "q8-9" })
+			.attr("d", polygon);
+
+            path.order();
+        }
+
+        function polygon(d) {
+            return "M" + d.join("L") + "Z";
+        }
+    });
+</script>
