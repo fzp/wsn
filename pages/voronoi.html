@@ -69,8 +69,8 @@ var tem = [26.250000,26.020000,26.020000,26.250000,25.879999,26.030001,26.090000
 
         var svg = d3.select("body").append("svg")
                 .attr("width", width)
-                .attr("height", height)
-                .on("mousemove", function() { vertices[0] = d3.mouse(this); redraw(); });
+                .attr("height", height);
+               
 
         var path = svg.append("g").selectAll("path");
 
