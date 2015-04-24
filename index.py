@@ -13,6 +13,10 @@ class MainHandler(tornado.web.RequestHandler):
     def get(self):
         self.render("./pages/index.html", arg="WSN")
 
+class Test(tornado.web.RequestHandler):
+    def get(self):
+        self.render("./pages/test.html")
+
 class RootHtmlHandler(tornado.web.RequestHandler):
     def get(self, html):
         print 'RootHtmlHandler: html:', html
@@ -25,6 +29,7 @@ class NodeInfoHandler(tornado.web.RequestHandler):
     def get(self):
         output = json.dumps(nodeInfo.NodeInfo)
         self.write(output)
+		
 
 class ReceptionRatioHandler(tornado.web.RequestHandler):
     def get(self, args):
@@ -134,6 +139,7 @@ application = tornado.web.Application([
     (r"/route/(.*)", RouteHandler),
     (r"/topo/change/(.*)", topoChangeHandler),
     (r"/topo/id/(.*)", topoIdHandler),
+	(r"/test", Test),
 ])
 
 if __name__ == "__main__":
