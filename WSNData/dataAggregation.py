@@ -52,13 +52,13 @@ def getC1():
     return  routerTable
 
 def getC1FromFile():
-    file = open('03')
+    file = open('./WSNData/03')
     c1 = file.read()
     c1 = pickle.loads(c1)
     file.close()
     return c1
 
-routeTable = getC1FromFile()
+routerTable = getC1FromFile()
 
 if __name__ == "__main__":
     #file = open('03','w')

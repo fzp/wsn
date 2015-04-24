@@ -103,6 +103,15 @@ class ReceptionDurationHandler(tornado.web.RequestHandler):
         print responseArray
         self.write(json.dumps(responseArray))
 
+class topoChangeHandler(tornado.web.RequestHandler):
+    def get(self, args):
+        pass
+from WSNData.topoChange import getRelatedTopo
+class topoIdHandler(tornado.web.RequestHandler):
+    def get(self, args):
+        print "topoIdHandler", args
+        self.write(json.dumps(getRelatedTopo(args)))
+
 settings = \
     {
         "static_path": os.path.join(os.path.dirname(__file__), "pages/static")
@@ -116,7 +125,9 @@ application = tornado.web.Application([
     (r"/Rep/meta", ReceptionMetaHandler),
     (r"/Rep/duration/(.*)", ReceptionDurationHandler),
     (r"/Rep/(.*)", ReceptionRatioHandler),
-    (r"/route/(.*)", RouteHandler)
+    (r"/route/(.*)", RouteHandler),
+    (r"/topo/change/(.*)", topoChangeHandler),
+    (r"/topo/id/(.*)", topoIdHandler),
 ])
 
 if __name__ == "__main__":

@@ -22,14 +22,16 @@ for date in dateList:
         if(not receptionDict[da][h].has_key(mi)):
             receptionDict[da][h][mi] = []
         receptionDict[da][h][mi].append(d) # fastest
+
 print 'Loading C1 data done'
+
 # print receptionDict
 for d in receptionDict:
     hs = receptionDict[d].keys()
     for h in sorted(hs):
         ms = receptionDict[d][h].keys()
         for m in sorted(ms):
-            receptionMeta[d][h][m] = len(receptionDict[d][h][m])
+            receptionMeta[d][h][m] = {"r": len(receptionDict[d][h][m]), "c": 0 }
 
 if __name__ == '__main__':
     for d in receptionDict:

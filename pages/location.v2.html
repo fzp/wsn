@@ -84,15 +84,21 @@
             document.getElementById("Info").appendChild(html);
         }
     }
+    function InfoInsert(html) {
+        if(typeof( html )=="string") {
+            document.getElementById("Info").innerHTML =
+                    html +document.getElementById("Info").innerHTML;
+        } else if( html instanceof HTMLElement) {
+            document.getElementById("Info").appendChild(html);
+        }
+    }
     var NodeInfo = {};
     var gObjects = {};
     var line = d3.svg.line()
             .x(function (d) {
-                console.log("x" + d.toString());
                 return gObjects.x(NodeInfo[d].latitude);
             })
             .y(function (d) {
-                console.log("y" + d.toString());
                 return gObjects.y(NodeInfo[d].longitude);
             });
     // Get node info
@@ -181,7 +187,25 @@
                 .data(data)
                 .enter()
                 .append("polygon")
-                .on("click", function(d){Info(d.nodeId.toString());})
+                .on("click", function(d){
+                    Info(d.nodeId.toString());
+                    getData("/topo/id/"+d.nodeId.toString(), function(aggregatedTopo){
+                        drawLinks(aggregatedTopo);
+                        d3.select("#route").selectAll(".line")
+                            .attr("stroke", function(ld){
+                                if(ld.link[0] == parseInt(d.nodeId)) {
+                                    return rgbToHex(0,255,0);
+                                } else {
+                                    var rch = 80 + ld.cnt;
+                                    rch = rch > 255 ? 255 : rch;
+                                    return rgbToHex(rch, 170, 170);
+                                }
+                            })
+                    })
+                })
+                .on("mouseover", function(d){
+                    Info(d.nodeId.toString());
+                })
                 .attr("class","hex")
                 .attr("transform", function(d, i) {
                     return "translate("+x(d.latitude)+","+y(d.longitude)+")";
@@ -235,13 +259,16 @@
                     var d = {};
                     d.time = new Date(2011, 7, day, hour, minute);
                     d.value = 0;
+                    d.changeValue = 0;
                     for (var subm = 0; subm < 10; subm += 1) {
-                        d.value += repMeta[day][hour][minute + subm];
+                        if( repMeta[day][hour][minute + subm] ) {
+                            d.value += repMeta[day][hour][minute + subm]['r'];
+                            d.changeValue += repMeta[day][hour][minute + subm]['c'];
+                        }
                     }
-                    // TODO 3 should be the "topology change"
                     d.stack = [
-                        {type: 'r', y0: 0, y1: d.value}, // r for rep
-                        {type: 'c', y0: d.value, y1: d.value + 30} // c for change
+                        {type: 'r', y0: 0, y1: d.value - 5 * d.changeValue}, // r for rep
+                        {type: 'c', y0: d.value - 5 * d.changeValue, y1: d.value} // c for change
                     ];
                     data.push(d);
                 }
@@ -329,69 +356,56 @@
                 getData("/route/?s=" + format(brush.extent()[0]) +
                         "&e=" + format(brush.extent()[1]),
                         function (response) {
-                            var links = [];
-                            var TopoList = JSON.parse(response);
-                            console.log(TopoList);
-                            for(var topo in TopoList){
-                                if( NodeInfo[topo] === undefined) {
-                                    continue;
-                                }
-                                for(var des in TopoList[topo]){
-                                    var real_Des = des;
-                                    if(real_Des == 1182) {
-                                        real_Des = 60001;
-                                    }
-                                    if(NodeInfo[real_Des] === undefined ){
-                                        continue;
-                                    }
-                                    var newLink = {
-                                        link: [
-                                            topo,
-                                            real_Des
-                                        ],
-                                        cnt: TopoList[topo][des]
-                                    };
-                                    links.push(newLink);
-                                }
-                            }
-                            document.getElementById("route").innerHTML = "";
-                            var lines = d3.select("#route").selectAll(".line")
-                                    .data(links);
-                            lines.enter().append("path")
-                                    .attr("class", "line")
-                                    .attr("routeId", function(d,i){return i.toString()})
-                                    .attr("stroke", function(d){
-//                                        var rch = 127+ d.cnt;
-//                                        rch = rch > 255 ? 255 : rch;
-                                        return rgbToHex(255, 170, 170);
-                                    })
-                                    .attr("stroke-width", function(d){
-                                        return Math.log(d.cnt);
-                                    })
-                                    .attr("d", function(d){return line(d.link)});
+                            drawLinks(response);
                 });
             }
         }
     });
     // Draw Route topology
-    function drawLinks() {
+    function drawLinks(aggregatedTopo) {
+        var TopoList = JSON.parse(aggregatedTopo);
         var links = [];
-        // link:
-        var demoLink = {
-            link: [
-                1183,
-                1026
-            ],
-            cnt: 10
-        };
-        links.push(demoLink);
+        for(var topo in TopoList){
+            if( NodeInfo[topo] === undefined) {
+                continue;
+            }
+            for(var des in TopoList[topo]){
+                var real_Des = des;
+                if(real_Des == 1182) {
+                    real_Des = 60001;
+                }
+                if(NodeInfo[real_Des] === undefined ){
+                    continue;
+                }
+                var newLink = {
+                    link: [
+                        topo,
+                        real_Des
+                    ],
+                    cnt: TopoList[topo][des]
+                };
+                links.push(newLink);
+            }
+        }
+        document.getElementById("route").innerHTML = "";
         var lines = d3.select("#route").selectAll(".line")
                 .data(links);
         lines.enter().append("path")
                 .attr("class", "line")
                 .attr("routeId", function(d,i){return i.toString()})
-                .attr("stroke", "#000000")
-                .attr("d", function(d){return line(d.link)});
+                .attr("stroke", function(d){
+                    var rch = 80 + d.cnt;
+                    rch = rch > 255 ? 255 : rch;
+                    return rgbToHex(255, 170, 170);
+                })
+                .attr("stroke-width", function(d){
+                    return Math.log(d.cnt);
+                })
+                .attr("d", function(d){return line(d.link)})
+                .on("click", function(d){
+                    InfoInsert("<p>" + d.link[0] + " -> " + d.link[1]
+                            + ", Count " + d.cnt.toString() + "</p>");
+                });
     }
 
 </script>
