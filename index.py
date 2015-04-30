@@ -102,11 +102,13 @@ class ReceptionDurationHandler(tornado.web.RequestHandler):
         responseArray = []
         for dt in rrule.rrule(rrule.MINUTELY, dtstart=st, until=et):
             try:
-                responseArray += receptionDict[dt.day][dt.hour][dt.minute]
+                if(dt.minute % 10 == 0):
+                    startTime = '2011:08:%d:%d:%d:00' % (dt.day, dt.hour, dt.minute)
+                    lastTimeStamp = int(fd.getTimeStamp(startTime))
+                    self.write(json.dumps(routerTable[lastTimeStamp]))
+                    return
             except KeyError:
                 print "no data at", dt.day, dt.hour, dt.minute
-        print responseArray
-        self.write(json.dumps(responseArray))
 
 class topoChangeHandler(tornado.web.RequestHandler):
     def get(self, args):
